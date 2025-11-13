@@ -6,3 +6,4 @@ Creating the GitHub page for developer challenge
 Explanation for choice of Search Implementations
 | Method | Pros | Cons |
 |--------| -----| -----|
+| OpeanAI Embeddings + Vector Search | | |
