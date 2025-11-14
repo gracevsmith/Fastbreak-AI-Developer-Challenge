@@ -14,4 +14,4 @@ Explanation for choice of Search Implementations
 | Alt2: Traditional NLP Techniques (Name Entity Recognition, dependency parsing, rules, etc)  | <ul><li> Great for structured NLP inputs </li></ul> | <ul><li> Rule-based approaches can perform poorly and are very case-dependent </li><li> No actual semantic understanding </li><li>Would scale very poorly </li></ul>  |
 
 
-Thought process: start w an LLM, see how that works; try Angolia with AI Search
+Thought process: start w Angolia with AI Search, see how that works; try an LLM with faux training data (can draft a couple examples for each template, then get AI to generate some more training data(?)
