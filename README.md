@@ -20,4 +20,4 @@ Thought process: start w Angolia with AI Search, see how that works; try an LLM 
 Angolia with AI Search Sketch plan:
 * Use semantic search to sort input into one of three templates
 * Use NER to parse the parameters from the input
-* Return template with filled in constraints, do P(parameter is correct|template is correct)P(template is correct)
+* Return template with filled in constraints, do P(parameter is correct|template is correct)P(template is correct) for each parameter
