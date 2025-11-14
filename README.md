@@ -15,3 +15,9 @@ Explanation for choice of Search Implementations
 
 
 Thought process: start w Angolia with AI Search, see how that works; try an LLM with faux training data (can draft a couple examples for each template, then get AI to generate some more training data(?)
+
+
+Angolia with AI Search Sketch plan:
+* Use semantic search to sort input into one of three templates
+* Use NER to parse the parameters from the input
+* Return template with filled in constraints, do P(parameter is correct|template is correct)P(template is correct)
