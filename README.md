@@ -17,7 +17,10 @@ Explanation for choice of Search Implementations
 Thought process: start w Angolia with AI Search, see how that works; try an LLM with faux training data (can draft a couple examples for each template, then get AI to generate some more training data(?)
 
 
-Angolia with AI Search Sketch plan:
+Algolia with AI Search Sketch plan:
 * Use semantic search to sort input into one of three templates
 * Use NER to parse the parameters from the input
-* Return template with filled in constraints, do P(parameter is correct|template is correct)P(template is correct) for each parameter
+* Return template with filled in constraints, do P(parameter is correct|template is correct)P(template is correct) for each parameters
+
+* Try 1: have Algolia match templates (works VERY POORLY)
+* Try 2: have algolia work more like NER methods (incoporate a little classical NLP) to identify parameters (venues, networks, rounds)
