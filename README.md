@@ -24,3 +24,53 @@ Algolia with AI Search Sketch plan:
 
 * Try 1: have Algolia match templates (works VERY POORLY)
 * Try 2: have algolia work more like NER methods (incoporate a little classical NLP) to identify parameters (venues, networks, rounds)
+
+
+
+NEW PIPELINE Incorporating Algolia and OpenAI Embeddings:
+1. Finding Data and Data Storage
+  - Finding Data that will help identify parameters to extract
+      - Scrape data from sports.io api for sports teams, DBpedia for venues
+      - Handmake some NLP rule-based data to help extract all other parameters
+      - Handmake some prompt that follow each template
+   - Data Storage
+      - Store all data to Algolia as structures database
+      - Create OpenAI word embeddings using Algolia data
+      - Cache Algolia data and word embeddings locally (mostly to avoid expense of calling APIs over and over again)
+      - Algolia is backup with all data
+2. Process Input; given a user prompt:
+  - Use spaCy's built-in NER to tag entities (names, venues, networks, etc)
+       - !! Could try to add a way to filter out n-grams that definitely aren't params (how to do it not rule based?)
+  - Generate n-grams (1,2,3) to capture partial phrases of user's prompt
+  - Include full query as context phrase
+3. Semantic Search
+  - Create embeddings for n-grams and full query
+  - Do semantic search against cached embeddings (from step 1), return top 2 params & confidence score
+  - If top 2 params differ and param_2 is not None:
+      - If top_param Confidence > 0.8: Automatic acceptance
+      - If top_param Confidence 0.6-0.8: Present top choice but show alternatives
+      - If top_param Confidence < 0.6: Require user disambiguation
+  - Populate "parameters" with parms and associated confidence scores
+4. Template Classification
+  - Compute embedding of full use query
+  - Compare against template example embeddings, return best matching template and confidence score
+5. Template Population with Extracted Paramterers
+  - Use extracted parameters to populate the template fields
+  - Check if extracted parameters make sense for the chosen template
+  - Ask for feedback from user, incoportate feedback in form of a dictionary into Algolia index
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
