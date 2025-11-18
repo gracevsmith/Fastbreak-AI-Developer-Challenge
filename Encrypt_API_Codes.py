@@ -10,7 +10,10 @@ import os
 
 
 def derive_key(password: str, salt: bytes) -> bytes:
-    """Derive a secure key from password"""
+    """
+    Derive a secure key from password
+    """
+
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
@@ -20,7 +23,9 @@ def derive_key(password: str, salt: bytes) -> bytes:
     return base64.urlsafe_b64encode(kdf.derive(password.encode()))
 
 def encrypt_secrets():
-    """Encrypt secrets with a password and save to file"""
+    """
+    Encrypt secrets with a password and save to file
+    """
     
     ## Get password from user
     password = getpass.getpass("Enter encryption password: ")
@@ -51,11 +56,11 @@ def encrypt_secrets():
         print("No secrets provided!")
         return
     
-    # Encrypt the secrets
+    ## Encrypt the secrets
     secrets_json = json.dumps(secrets)
     encrypted_data = cipher.encrypt(secrets_json.encode())
     
-    # Save encrypted file and salt
+    ## Save encrypted file and salt
     with open('secrets.encrypted', 'wb') as f:
         f.write(encrypted_data)
     
@@ -75,15 +80,15 @@ def decrypt_secrets():
     
     password = getpass.getpass("Enter decryption password: ")
     
-    # Read salt
+    ## Read salt
     with open('salt.bin', 'rb') as f:
         salt = f.read()
     
-    # Derive key
+    ## Derive key
     key = derive_key(password, salt)
     cipher = Fernet(key)
     
-    # Read and decrypt
+    ## Read and decrypt
     with open('secrets.encrypted', 'rb') as f:
         encrypted_data = f.read()
     

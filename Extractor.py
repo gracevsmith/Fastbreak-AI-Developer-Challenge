@@ -8,20 +8,23 @@ from typing import Dict, List
 from algoliasearch.search.client import SearchClientSync
 from openai import OpenAI
 import numpy as np
-from Parameters_to_Extract import Extracted_Parameters
+import Parameters_to_Extract
+
 
 
 class PreMadeSportsExtractor:
     def __init__(self, algolia_app_id, algolia_api_key, openai_api_key,
-                 openai_model_for_embeddings="text-embedding-3-small", cache_path="/content/drive/MyDrive/entity_embeddings.pkl",
-                 n_gram = True):
+                 openai_model_for_embeddings="text-embedding-3-small", cache_path="entity_embeddings",
+                 n_gram = False):
+        
+        self.extracted_Parameters = Parameters_to_Extract.Extracted_Parameters()
         self.client = SearchClientSync(app_id=algolia_app_id, api_key=algolia_api_key)
         self.index_name = "premade_sports_knowledge"
 
         ## load spacy english dict for NER
         self.nlp = spacy.load("en_core_web_sm")
 
-        self.openai_client = OpenAI(openai_api_key)
+        self.openai_client = OpenAI(api_key=openai_api_key)
         self.embedding_model = openai_model_for_embeddings
         self.cache_path = cache_path
         self.n_gram = n_gram
@@ -100,11 +103,21 @@ class PreMadeSportsExtractor:
         Uses batching, caching, and retries on rate-limit errors.
         """
 
-        if os.path.exists(self.cache_path):
-            print(f"Loading cached embeddings from {self.cache_path}...")
-            with open(self.cache_path, "rb") as f:
-                all_entities = pickle.load(f)
-            return all_entities
+        ## If the files exist in the git (which they should rn),
+            ## load and merge files
+        part_aa = f"{self.cache_path}.pkl.part_aa"
+        part_ab = f"{self.cache_path}.pkl.part_ab"
+        combined = "entity_embeddings_combined.pkl"
+        
+        with open(combined, 'wb') as outfile:
+            for part in [part_aa, part_ab]:
+                with open(part, 'rb') as infile:
+                    outfile.write(infile.read())
+    
+        # Now try loading the combined file
+        with open(combined, 'rb') as f:
+            return pickle.load(f)
+
 
         print("No cache found. Getting all entities from Algolia…")
 
@@ -348,7 +361,7 @@ class PreMadeSportsExtractor:
         Handles single match and multiple matches (if low confidence)
         """
 
-        params = Extracted_Parameters()
+        params = self.extracted_Parameters
         params_confidence = {}
         alt_interpretations = {}
 
@@ -448,15 +461,15 @@ class PreMadeSportsExtractor:
         }
         
         # Get the filled template
-        template_population = self.populate_template(template_result["best_template"], result["parameters"])
+        template_population = self.populate_template(template_result["best_template"])
         
         # Convert to the desired output format
         formatted_output = {
             "template": template_display_names.get(template_result["best_template"], template_result["best_template"]),
             "confidence": float(template_result["confidence"]),  # Convert numpy to native Python float
             "parsedConstraint": template_population["filled_template"],
-            "parameters": self._format_parameters(result["parameters"]),
-            "parameterConfidences": self._format_parameter_confidences_from_matches(result["parameters"], result["confidences"], result["raw_matches"]),
+            "parameters": self._format_parameters(),
+            "parameterConfidences": self._format_parameter_confidences_from_matches(result["confidences"], result["raw_matches"]),
             "alternatives": self._format_alternatives(result["alternatives"])
         }
         
@@ -481,10 +494,11 @@ class PreMadeSportsExtractor:
         
         return formatted_alternatives
 
-    def _format_parameter_confidences_from_matches(self, params: Extracted_Parameters, confidences: Dict, raw_matches: List):
+    def _format_parameter_confidences_from_matches(self, confidences: Dict, raw_matches: List):
         """
         Create confidence scores for every parameter using actual semantic search outputs
         """
+        params = self.extracted_Parameters
 
         parameter_confidences = {}
         
@@ -511,8 +525,12 @@ class PreMadeSportsExtractor:
         return parameter_confidences
 
 
-    def _format_parameters(self, params: Extracted_Parameters) -> Dict:
-        """Convert Extracted_Parameters object to the desired parameters dictionary format"""
+    def _format_parameters(self) -> Dict:
+        """
+        Convert extracted_Parameters object to the desired parameters dictionary format
+        """
+
+        params = self.extracted_Parameters
         parameters_nonempty_dict = {}
         
         fields =  {
@@ -626,11 +644,13 @@ class PreMadeSportsExtractor:
         }
 
 
-    def populate_template(self, template_name, parameters: Extracted_Parameters):
+    def populate_template(self, template_name):
         """
         Populate template fields with extracted parameters
         Returns: dict with filled template and validation results
         """
+
+        parameters = self.extracted_Parameters
 
         # Get template structure
         template_info = {
@@ -650,7 +670,7 @@ class PreMadeSportsExtractor:
         
         template_data = template_info.get(template_name, {})
         filled_template = template_data.get("template", "")
-        validation_results = self._validate_parameters(parameters, template_data)
+        validation_results = self._validate_parameters()
         
         # Define field mapping from template placeholders to parameter attributes
         field_mapping = {
@@ -689,9 +709,11 @@ class PreMadeSportsExtractor:
 
 
 
-    def _validate_parameters(self, parameters: Extracted_Parameters, template_data):
+    def _validate_parameters(self):
         ## Check parameter consistency for numeric values
         ## Maybe think about adding ways to check for word parameters
+
+        parameters = self.extracted_Parameters
 
         validation_results = {
             "warnings": []

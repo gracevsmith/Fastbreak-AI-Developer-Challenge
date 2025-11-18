@@ -591,8 +591,6 @@ class CompleteSportsDataUploader_Algolia:
             traceback.print_exc()
 
 
-
-
     def _configure_index(self):
         """
         Configure the index for optimal semantic search based on your data structure
