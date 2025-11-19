@@ -3,6 +3,9 @@ Grace Smith
 
 ## Contents
 [Setup Instructions](#setup-instructions)
+[Architecture Decisions](#architecture-decisions)
+[Search Implementation Explanation](#search-implementation-explanation)
+[Brief Documentation](#brief-documentation)
 
 
 ## Setup Instructions
@@ -64,7 +67,6 @@ PIPELINE Incorporating Algolia and OpenAI Embeddings:
 
 ## Brief Documentation
 ### My Approach to Semantic Seach
-
 
 ### Why I Chose Algolia/ Open AI
 
