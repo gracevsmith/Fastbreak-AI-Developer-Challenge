@@ -18,11 +18,16 @@ def load_secrets():
     
     # Otherwise, decrypt from encrypted file
     print("Decrypting secrets from encrypted file...")
-    secrets = Encrypt_API_Codes.decrypt_secrets()
-    
-    if secrets:
-        for key, value in secrets.items():
-            os.environ[key] = value
-        print(f"Loaded {len(secrets)} secrets into environment")
-    else:
-        raise Exception("Failed to load secrets")
+    while True:
+        try:
+            secrets = Encrypt_API_Codes.decrypt_secrets()
+            
+            if secrets:
+                for key, value in secrets.items():
+                    os.environ[key] = value
+                print(f"Loaded {len(secrets)} secrets into environment")
+            else:
+                raise Exception("Failed to load secrets")
+        except Exception as e:
+            print(f"Decryption error: {e}")
+            print("Please check your encryption key and try again.")
