@@ -4,6 +4,7 @@ import re
 import time
 import os
 import pickle
+from dataclasses import fields
 from typing import Dict, List
 from algoliasearch.search.client import SearchClientSync
 from openai import OpenAI
@@ -28,8 +29,9 @@ class PreMadeSportsExtractor:
         self.embedding_model = openai_model_for_embeddings
         self.cache_path = cache_path
         self.n_gram = n_gram
+        
 
-        # Map Algolia types to Extracted_Parameters fields
+        ## Map Algolia types to Extracted_Parameters fields
         self.type_mapping = {
             "team": "teams",
             "venue": "venues",
@@ -44,6 +46,29 @@ class PreMadeSportsExtractor:
             "pattern": "each_or_all",
             "matchup": "matchups",
             "bye": "byes"
+        }
+
+        ## Map template placeholder to Extracted_Parameters
+        self.field_mapping = {
+            "<min>": "min_val",
+            "<max>": "max_val", 
+            "<k>": "k",
+            "<m>": "m",
+            "<each_or_all>": "each_or_all",
+            "<teams>": "teams",
+            "<games>": "games",
+            "<venues>": "venues", 
+            "<networks>": "networks",
+            "<rounds>": "rounds",
+            "<round1>": "round1",
+            "<round2>": "round2",
+            "<home_away_bye_active>": "home_away_bye_active"
+        }
+
+        self.template_display_names = {
+            "game_scheduling_constraints": "Template 1: Game Scheduling Constraints",
+            "sequence_constraints": "Template 2: Sequence Constraints", 
+            "team_schedule_pattern_constraints": "Template 3: Team Schedule Pattern Constraints"
         }
 
         self.template_examples = {
@@ -454,11 +479,7 @@ class PreMadeSportsExtractor:
         template_result = self.classify_template(user_prompt)
         
         # Format the output in the desired JSON structure
-        template_display_names = {
-            "game_scheduling_constraints": "Template 1: Game Scheduling Constraints",
-            "sequence_constraints": "Template 2: Sequence Constraints", 
-            "team_schedule_pattern_constraints": "Template 3: Team Schedule Pattern Constraints"
-        }
+        template_display_names = self.template_display_names
         
         # Get the filled template
         template_population = self.populate_template(template_result["best_template"])
@@ -673,22 +694,7 @@ class PreMadeSportsExtractor:
         validation_results = self._validate_parameters()
         
         # Define field mapping from template placeholders to parameter attributes
-        field_mapping = {
-            # Template placeholder -> Parameter attribute
-            "<min>": "min_val",
-            "<max>": "max_val", 
-            "<k>": "k",
-            "<m>": "m",
-            "<each_or_all>": "each_or_all",
-            "<teams>": "teams",
-            "<games>": "games",
-            "<venues>": "venues", 
-            "<networks>": "networks",
-            "<rounds>": "rounds",
-            "<round1>": "round1",
-            "<round2>": "round2",
-            "<home_away_bye_active>": "home_away_bye_active"
-        }
+        field_mapping = self.field_mapping
     
         # Fill in the template with actual values
         for template_field, param_field in field_mapping.items():
@@ -731,6 +737,8 @@ class PreMadeSportsExtractor:
     def get_user_feedback_and_update(self, user_query: str, extraction_result: Dict, user_corrections: Dict) -> None:
         """
         Incorporate user feedback into Algolia index for continuous learning
+        Feedback only works if we recalculate embeddings every time we run this i.e. don't load (outdated) data files
+            (which is fine, but for now we skip bc of api usage constraints and for speed)
         """
         try:
             # Create a new entity from user corrections
@@ -745,18 +753,31 @@ class PreMadeSportsExtractor:
             }
             
             # Add the name/pattern for embedding generation
-            if "corrected_value" in user_corrections:
-                feedback_entity["name"] = user_corrections["corrected_value"]
-                feedback_entity["pattern"] = user_corrections.get("corrected_pattern")
+            if "parameters" in user_corrections:
+                feedback_entity["name"] = user_corrections["parameters"]
+                feedback_entity["template"] = user_corrections["template"]
             
             # Upload to Algolia
-            self.client.add_object(self.index_name, feedback_entity)
+            self.client.save_object(self.index_name, feedback_entity)
             print("User feedback incorporated into Algolia index")
 
         except Exception as e:
             print(f"Error saving feedback: {e}")
 
 
+    def _nice_display(self, result):
+        print(f"\n=== EXTRACTION RESULTS ===")
+        print(f"Template: {result["template"]} "
+            f"(confidence: {result["confidence"]:.2f})")
+        print(f"Filled template: {result["parsedConstraint"]}")
+        
+        
+        # Show parameter confidences
+        for param_name, param_value in result["parameters"].items():
+            confidence = result["confidence"]
+            print(f"  - {param_name}: {param_value} (confidence: {confidence:.2f})")
+
+        
 
     # Example usage with feedback loop:
     def interactive_extraction(self, user_prompt: str):
@@ -765,47 +786,63 @@ class PreMadeSportsExtractor:
         """
         result = self.extract(user_prompt)
         
-        print(f"\n=== EXTRACTION RESULTS ===")
-        print(f"Template: {result['template_classification']['best_template']} "
-            f"(confidence: {result['template_classification']['confidence']:.2f})")
-        print(f"Filled template: {result['template_population']['filled_template']}")
-        
-        # Show validation issues
-        validation = result['template_population']['validation']
-        if validation['missing_required']:
-            print(f"Missing required: {validation['missing_required']}")
-        if validation['warnings']:
-            print(f"Warnings: {validation['warnings']}")
-        
-        # Show parameter confidences
-        print(f"\nParameter confidences:")
-        for param, confidence in result['parameter_extraction']['confidences'].items():
-            value = getattr(result['parameter_extraction']['parameters'], param, None)
-            print(f"  - {param}: {value} (confidence: {confidence:.2f})")
-        
+        self._nice_display(result)
+
         # Ask for feedback if needed
-        if result['ready_for_feedback'] or input("\nAre these results correct? (y/n): ").lower() != 'y':
-            corrections = self._collect_user_corrections(result)
-            self.get_user_feedback_and_update(user_prompt, result, corrections)
-        
-        return result
+        corrections = self._collect_user_corrections(result)
+        self.get_user_feedback_and_update(user_prompt, result, corrections)
+
+        return corrections
 
 
     def _collect_user_corrections(self, result: Dict) -> Dict:
         """
         Collect corrections from user input
         """
+
+        special_mappings = {"min_val":"min", "max_val":"max"}
+        
         corrections = {}
         print("\n=== PROVIDE CORRECTIONS ===")
+
+        ## Allow for correction of template
+        print("\nCorrect the template: (press enter to skip)")
+        print("\nAvailable templates:")
+        for template_name in self.template_display_names.values():
+            print(f"  {template_name}")
+
+        current_template = result["template"]
+        new_temp = input(f"\n Template (Current Template: {current_template}) \n Enter a value (1/2/3): ")
+        if new_temp:
+            corrections["template"] = list(self.template_display_names.values())[int(new_temp)]
+
+
         
-        # Allow corrections for any parameter
+        ## Allow corrections for any parameter
         print("\nCorrect any parameter (press enter to skip):")
-        for param in result['parameter_extraction']['confidences'].keys():
-            current = getattr(result['parameter_extraction']['parameters'], param, None)
-            new_value = input(f"  {param} (current: {current}): ")
-            if new_value.strip():
-                corrections[param] = new_value
-        
+        for field in fields(self.extracted_Parameters):
+            param_name = field.name
+            
+            result_key = special_mappings.get(param_name)
+
+            if result_key in result["parameters"]:
+                current = result["parameters"][result_key]
+                new_value = input(f"  {param_name} (current: {current}): ")
+                if new_value.strip():
+                    corrections[param_name] = new_value
+
+            elif param_name in result["parameters"]:
+                current = result["parameters"][param_name]
+                new_value = input(f"  {param_name} (current: {current}): ")
+                if new_value.strip():
+                    corrections[param_name] = new_value
+
+
+            else:
+                new_value = input(f"  {param_name}: ")
+                if new_value.strip():
+                    corrections[param_name] = new_value
+
         return corrections
 
 
