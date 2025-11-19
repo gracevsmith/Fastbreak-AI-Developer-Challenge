@@ -53,86 +53,62 @@ Data Flow Architecture:
 ───────────────────────────────────────────────────────────
 User Input → Text Processing → Semantic Search → 
 Template Classification → Parameter Extraction → 
-Constraint Validation → Formatted Output → 
-(Optional Feedback → New Data)
+Formatted Output → (Optional Feedback → New Data)
 ───────────────────────────────────────────────────────────
 ```
-
-   - Feedback only incorporated if OpenAI embeddings are recalculated on modified Aloglia index (expensive; did not fully incorporate this into current code because of my API key's call limitations)
+   - Feedback only incorporates if OpenAI embeddings are recalculated on modified Aloglia index (expensive; did not fully incorporate this into current code because of my API key's call limitations)
 
 
 ## Search Implementation Explanation
-Integrating Database features of Algolia with OpenAI Embeddings
-PIPELINE Incorporating Algolia and OpenAI Embeddings:
-1. Finding Data and Data Storage
-   - Finding Data that will help identify parameters to extract
-      - Scrape data from sports.io api for sports teams, DBpedia for venues
-      - Handmake some NLP rule-based data to help extract all other parameters
-      - Handmake some prompt that follow each template
+Hybrid Search Pipeline: Algolia with OpenAI Embeddings
+1. Data Acquisition and Storage
+   - Data Collection
+      - Sports teams from Sportsdata.io API (NBA, NFL, MLB, etc.)
+      - Venues from DBpedia SPARQL endpoint
+      - Hendcrafted patterns for parameters to extract
+      - Handcrafted template examples for classification task
    - Data Storage
-      - Store all data to Algolia as structures database
-      - Create OpenAI word embeddings using Algolia data
-      - Cache Algolia data and word embeddings locally (mostly to avoid expense of calling APIs over and over again)
-      - Algolia is backup with all data
-2. Process Input; given a user prompt:
-   - Use spaCy's built-in NER to tag entities (names, venues, networks, etc)
-       - !! Could try to add a way to filter out n-grams that definitely aren't params (how to do it not rule based?)
-   - Generate n-grams (1,2,3) to capture partial phrases of user's prompt
-   - Include full query as context phrase
-3. Semantic Search
-   - Create embeddings for n-grams and full query
-   - Do semantic search against cached embeddings (from step 1), return top 2 params & confidence score
-   - If top 2 params differ and param_2 is not None:
-      - If top_param Confidence > 0.8: Automatic acceptance
-      - If top_param Confidence 0.6-0.8: Present top choice but show alternatives
-      - If top_param Confidence < 0.6: Require user disambiguation
-   - Populate "parameters" with parms and associated confidence scores
-4. Template Classification
-   - Compute embedding of full use query
-   - Compare against template example embeddings, return best matching template and confidence score
-5. Template Population with Extracted Paramterers
-   - Use extracted parameters to populate the template fields
-   - Check if extracted parameters make sense for the chosen template
-   - Ask for feedback from user, incoportate feedback in form of a dictionary into Algolia index
+      - Store all data to Algolia as structured search index
+      - Create OpenAI word embeddings for all Algolia entities
+      - Local caching of embeddings to minimize API costs
+      - Algolia serves as primary data backup
+2. Input Processing
+   - NER: use spaCy NER to help identify teams, venues, networks, etc
+   - N-gram generation: (1-gram) or (1-gram AND 2-grams) phrases extracted from user's prompt
+        - n-gram number is user's choice
+   - Context preservation: Include full query as context phrase
+3. Semantic Parameter Extraction
+   - Embedding generation: create OpenAI embeddings for all search phrases
+   - Similarity matching: use cosine similarity of search phrase embedding against cached entity embeddings; return cached entity with largest cosine similarity
+   - Confidence based results:
+      - 0.8: Automatic acceptance
+      - 0.6-0.8: Present top choice but show alternatives
+      - < 0.6: Require user disambiguation
+   - Parameter mapping: entities mapped to constraint parameters
+4. Template Classification and Population
+   - Embedding comparison: compare user prompt against template example embeddings
+   - Best match selection: highest cosine similarity template selected
+   - Confidence scores: template match confidence returned
+   - Populate template: use extracted parameters to fill template slots
+5. user Feedback
+   - Interactive feedback: optional user correction system
+   - Continuous Learning: feedback incorporated into Algolia index
+        - Feedback only incorporates if OpenAI embeddings are recalculated on modified Aloglia index (expensive; did not fully incorporate this into current code because of my API key's call limitations)
 
 ## Brief Documentation
-### My Approach to Semantic Seach
-
 ### Why I Chose Algolia/ Open AI
+I chose Algolia to store my data because it is specifically designed with fast search results in mind, which is ideal for entity matching. It is less expense to lookup information because it utilizes neural hashing in its storage of data. It scales well with large datasets and is easy to use in Python.
+
+I opted to use the OpenAI embeddings mainly for performance advantages. OpenAi's embeddings have 1563 dimensions, much larger than its competitors. It is skilled at capturing semantic meaning, and is trained on a less specilized dataset than Algolia, which is mostly used for e-commerce product searches rather than sports scheduling. OpenAI embeddings allowed me to create my own NLP pipeline using the embeddings, rather than using a company's blackbox method. Additionally, the way I've utilized OpenAI's embeddings in my code allows me to swap OpenAI's embeddings for another method's in the future without needing to restructure the code.
 
 ### Challenged Faced and How I Solved Them
+The main challenge that I faced was a lack of data. I made up for this by creating handmade data and scraping the internet for data relevate to sports scheduling. I also added a feedback section to the code, which would essentially create a new entity from the user's prompt and the corrected filled-out template; in this way, the model creates new data the more it is used. Note that due to the way data is called in the version of the code I've uploaded to GitHub (called from files rather than making repeated API calls, which are expensive for the free version), the new data is not integrated. However, the code to integrate the data is functioning, and if one were to load the data through Algolia rather than the premade .pkl datafile, the new data would be incorporated.
+
+Another challenge that I faced was knowing which words in an NLP prompt were associated with which labels/ parameters. This was a little difficult to figure out because there weren't any examples of a natural language prompt with extracted parameter outputs. I made educated guesses on the parameters that didn't seem very distinct. In the future, having some labeled data and further access to/ understanding of the core optimization model would vastly improve the extracted parameter portion of the code.
 
 ### Trade-offs I Considered
+The two main trade-offs I considered were accuracy vs speed, accuracy vs expense (w.r.t API calls), and speed vs memory usage.
 
+The n-grams case exemplifies of the accuracy-speed tradeoff. The more n-grams that are considered, the more likely the model is able to identify entities that should be extracted parameters. I limited the maximum amount of n-grams to 2, as most phrases we would need to consider can be captured in two words (e.g. venue: "Staples Center"). This has a small tradeoff in accuracy, as three word phrases like "Christmas Day games" are missed by the model but this is justified by significant runtime improvement.
 
-
-
-Sports Scheduling Constraint Parser
-
-Creating the GitHub page for developer challenge
-
-Explanation for choice of Search Implementations
-| Method | Pros | Cons |
-|--------| -----| -----|
-| OpeanAI Embeddings + Vector Search | <ul><li>Considered very accurate wrt capturing semantic meaning (due to high-dimensional vector embeddings) </li><li> Compatible with Python </li></ul>| <ul><li>Pretrained on unknown data (introduces biases that will be hard to account for) </li><li> Generally computationally expensive </li></ul>|
-| Algolia with AI Search | <ul><li> Semantic search built in (their method seems conceptually similar to vector embeddings) </li><li> Less expensive than most vector embedding methods (due to neural hashing that compresses vectors)</li><li>"Hybrid search" combines semantic and keyword search </li><li> Can supplement pretrained model with user's own data </li><li>Typo resistant</li></ul> | <ul><li> Pricing for more advanced versions </li><li> Unclear what data the pretrained model was trained on (possible biases) </li></ul>|
-| Pinecone | <ul><li>Vector database (stores vector embeddings) so should capture semantic meaning well </li><li> Compatible with Python </li></ul> | <ul><li> Vector database doesn't compress data the way neural hashing does </li><li> Cost increase for larger projects </li></ul>  |
-| Supabase pgvector | <ul><li> Stores vector embeddings so should capture semantic meaning well </li><li> Seems more computationally efficient than Pinecone/ Vector Database methods (likely because it's an extension of the Supabase SQL database, rather than a new/ separate database) </li></ul> | <ul><li> May be less accurate than Vector Database methods </li><li> Real-time updates with large amounts of data require reindexing that can be expensive/ timely (more true for IVFFlat, debately still true for HNSW) </li></ul>  |
-| Alt1: pretrained LLM (thinking RoBERTa)  | <ul><li> Can apply "context" better </li><li> Input immediately results in output</li><li> Can finetune with scheduling dataset easily </li></ul> | <ul><li> Need training data </li><li>  Cost/ efficiency scales with usage </li><li> Accuracy not guarenteed/ consistent (same prompt may get different outputs) </li></ul>  |
-| Alt2: Traditional NLP Techniques (Name Entity Recognition, dependency parsing, rules, etc)  | <ul><li> Great for structured NLP inputs </li></ul> | <ul><li> Rule-based approaches can perform poorly and are very case-dependent </li><li> No actual semantic understanding </li><li>Would scale very poorly </li></ul>  |
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+When deciding to load the data from .pkl files instead of directly calling the Algolia and OpenAI APIs, all three tradeoffs were considered. Loading the data has less accuracy, because we are not incorporating the data from the user's feedback, and require more memory, but we decrease runtime and expensive API calls.
