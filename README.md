@@ -48,9 +48,8 @@ Grace Smith
    - OpenAI API: Multiple caching layers to minimize embedding API calls
    - SportsData.io API: Batching of team data requests across multiple sports leagues
 6. **Data Flow Architecture**
-```bash
-User input -> Text Processing -> Semantic Search -> Template Classification -> Parameter Extraction -> Constraint Validation -> Formatted Output (-> Optional Feedback which becomes New Data)
-```
+| User input -> Text Processing -> Semantic Search -> Template Classification -> Parameter Extraction -> Constraint Validation -> Formatted Output (-> Optional Feedback which becomes New Data) |
+|-------------------------------------------------------------|
    - Feedback only incorporated if OpenAI embeddings are recalculated on modified Aloglia index (expensive; did not fully incorporate this into current code because of my API key's call limitations)
 
 
