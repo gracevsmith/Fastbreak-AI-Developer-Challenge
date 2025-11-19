@@ -17,13 +17,16 @@ Grace Smith
 
 ### Installation and Usage
 1. **Clone the repository**
+   Code for Windows
    ``` bash
    git clone https://github.com/gracevsmith/Fastbreak-AI-Developer-Challenge.git
    cd Fastbreak-AI-Developer-Challenge
+   py -3.12 -m venv venv
+   venv\Scripts\activate  
    pip install -r requirements.txt
    python -m spacy download en_core_web_sm
    ```
-2. **Running the code**
+3. **Running the code**
    When inside the .\Fastbreak-AI-Developer-Challenge\ filepath,
    ```bash
    python -3.12 main.py
