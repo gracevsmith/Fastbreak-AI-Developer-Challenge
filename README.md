@@ -6,16 +6,19 @@ Grace Smith
 ## Setup Instructions
 ### Prerequisites
 - Python (version >= 3.7, <3.13)
+   - Installation of Python 3.12.10 can be found here: [https://www.python.org/downloads/release/python-31210/](https://www.python.org/downloads/release/python-31210/)
 - Git
 
 ### Packages and Versions Used
 - 
 
 ### Installation
-1. ** Clone the repository**
+1. **Clone the repository**
    ``` bash
    git clone https://github.com/gracevsmith/Fastbreak-AI-Developer-Challenge.git
-   
+   cd Fastbreak-AI-Developer-Challenge
+   pip install -r requirements.txt
+   python -m spacy download en_core_web_sm
    ```
 
 ## Architecture Decisions
