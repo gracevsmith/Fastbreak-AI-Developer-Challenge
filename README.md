@@ -2,10 +2,10 @@
 Grace Smith
 
 ## Contents
-[Setup Instructions](#setup-instructions)
-[Architecture Decisions](#architecture-decisions)
-[Search Implementation Explanation](#search-implementation-explanation)
-[Brief Documentation](#brief-documentation)
+- [Setup Instructions](#setup-instructions)
+- [Architecture Decisions](#architecture-decisions)
+- [Search Implementation Explanation](#search-implementation-explanation)
+- [Brief Documentation](#brief-documentation)
 
 
 ## Setup Instructions
@@ -28,11 +28,34 @@ Grace Smith
    ```bash
    python -3.12 main.py
    ```
+   User will be prompted to type in password in order to use API keys.
 
 ## Architecture Decisions
-- 
+1. **Data Integration**
+   - Multi-Source Data Aggregation: Pulling data from APIs (sportsdata.io), knowledge bases (DBpedia), and handmade examples, then unifying them in Algolia
+   - Embedding Caching Design: Pre-computing and caching entity embeddings to avoid expensive OpenAI API calls when processing the same dataset repeatedly
+2. **Search and NLP Architecture**
+   - Mutli-Modal Extraction: Combining classical NLP techniques (rule-based patterns, spaCy Named Entity Recognition) with semantic search using OpenAI embeddings
+   - Hybrid Search Pipeline: Implementing multi-stage appraoch that uses both keyword matching and semantic similarity for template identification and parameter extraction
+3. **Configuration and Deployment**
+   - Conditional Data Loading: Initialization checks if data already exists in Algolia to avoid redudant uploads and API calls
+   - Semantic Search Optimization: Configuring Algolia index with searchable attributes tailored for sports constraint parsing
+4. **Performance Considerations**
+   - Batch Processing: Entity embedding in batches of 200 for optimal API usage
+   - Selective Embedding: Filter out invalid entities before expensive API calls
+   - Memory Management: Pickle-based caching strategy for large embedding datasets
+5. **API Rate Limit Management**
+   - OpenAI API: Multiple caching layers to minimize embedding API calls
+   - SportsData.io API: Batching of team data requests across multiple sports leagues
+6. **Data Flow Architecture**
+   - ``` bash
+     User input --> Text Processing --> Semantic Search --> Template Classification --> Parameter Extraction --> Constraint Validation --> Formatted Output (--> Optional Feedback which becomes New Data)
+   ```
+        - Feedback only incorporated if OpenAI embeddings are recalculated on modified Aloglia index (expensive; did not fully incorporate this into current code because of my API key's call limitations)
+
 
 ## Search Implementation Explanation
+Integrating Database features of Algolia with OpenAI Embeddings
 PIPELINE Incorporating Algolia and OpenAI Embeddings:
 1. Finding Data and Data Storage
    - Finding Data that will help identify parameters to extract
