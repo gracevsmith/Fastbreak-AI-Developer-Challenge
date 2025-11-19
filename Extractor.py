@@ -33,19 +33,36 @@ class PreMadeSportsExtractor:
 
         ## Map Algolia types to Extracted_Parameters fields
         self.type_mapping = {
+            ## Entity lists
             "team": "teams",
             "venue": "venues",
             "network": "networks",
             "game_type": "games",
             "round": "rounds",
             "round_range": "rounds",
+            "matchup": "matchups", 
+            "bye": "byes",
+            
+            ## Location/status mappings
             "status": "home_away_bye_active",
             "location": "home_away_bye_active",
-            "constraint": "min_val",
-            "quantifier": "each_or_all",
+            
+            ## Quantitative constraints - both map to min_val since most constraints are min-focused
+            "constraint": "min_val", 
+            "quantifier": "min_val",
+            
+            ## Pattern/quantifier logic for each_or_all
             "pattern": "each_or_all",
-            "matchup": "matchups",
-            "bye": "byes"
+            
+            ## Event categories and temporal terms
+            "event_category": "games",
+            "temporal_category": "games", 
+            "temporal_range": "rounds",
+            "temporal_pattern": "rounds",
+            "broadcast_category": "games",
+            
+            ## Game states
+            "game_state": "home_away_bye_active"
         }
 
         ## Map template placeholder to Extracted_Parameters
