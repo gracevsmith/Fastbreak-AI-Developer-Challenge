@@ -18,7 +18,8 @@ def load_secrets():
     
     # Otherwise, decrypt from encrypted file
     print("Decrypting secrets from encrypted file...")
-    while True:
+    reask = True
+    while reask == True:
         try:
             secrets = Encrypt_API_Codes.decrypt_secrets()
             
@@ -26,6 +27,7 @@ def load_secrets():
                 for key, value in secrets.items():
                     os.environ[key] = value
                 print(f"Loaded {len(secrets)} secrets into environment")
+                reask = False
             else:
                 raise Exception("Failed to load secrets")
         except Exception as e:
