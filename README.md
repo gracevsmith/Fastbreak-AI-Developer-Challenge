@@ -1,4 +1,38 @@
 # Fastbreak-AI-Developer-Challenge
+Grace Smith
+
+## Contents
+
+## Setup Instructions
+### Prerequisites
+- Python (version >= 3.7, <3.13)
+- Git
+
+### Packages and Versions Used
+- 
+
+### Installation
+1. ** Clone the repository**
+   ``` bash
+   git clone https://github.com/gracevsmith/Fastbreak-AI-Developer-Challenge.git
+   
+   ```
+
+## Architecture Decisions
+
+## Search Implementation Explanation
+
+## Environment and Dependencies
+
+## Brief Documentation
+### My Approach to Semantic Seach
+### Why I Chose Algolia/ Open AI
+### Challenged Faced and How I Solved Them
+### Trade-offs I Considered
+
+
+
+
 Sports Scheduling Constraint Parser
 
 Creating the GitHub page for developer challenge
