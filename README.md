@@ -10,7 +10,7 @@ Grace Smith
 
 ## Setup Instructions
 ### Prerequisites
-- Python (version >= 3.7, <3.13)
+- Python (3.12)
    - Installation of Python 3.12.10 can be found here: [https://www.python.org/downloads/release/python-31210/](https://www.python.org/downloads/release/python-31210/)
 - Git
 - Packages used can be found in requirements.txt
